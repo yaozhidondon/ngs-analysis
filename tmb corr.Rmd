@@ -1,0 +1,64 @@
+---
+title: "TMB"
+author: "yc"
+date: "2024-12-11"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r tmb}
+# Load necessary libraries
+
+# Load required libraries
+library(ggplot2)
+library(ggpubr)
+
+# Example experimental data (replace with your actual data)
+
+TMB_pair <- c(8.24, 52.52, 0)  # Data for group 1
+TMB_single <- c(9, 53, 1)  # Data for group 2
+
+# Combine data into a data frame
+data <- data.frame(tMB_pair = TMB_pair, tMB_single = TMB_single)
+
+# Calculate Spearman correlation
+spearman_result <- cor.test(data$tMB_pair, data$tMB_single, method = "spearman")
+
+# Print Spearman correlation coefficient and p-value
+cat("Spearman Correlation Coefficient:", spearman_result$estimate, "\n")
+cat("P-value:", spearman_result$p.value, "\n")
+
+# Plot Spearman correlation with linear regression line
+plot <- ggplot(data, aes(x = TMB_pair, y = TMB_single)) +
+  geom_point(color = "blue", alpha = 0.7) +  # Scatter points
+  geom_smooth(method = "lm", color = "red", se = FALSE) +  # Linear regression line
+  stat_cor(method = "spearman", label.x = min(data$tMB_pair) + 1, label.y = max(data$tMB_single) - 1) +  # Spearman correlation
+  stat_regline_equation(aes(label = ..eq.label..), formula = y ~ x, label.x = min(data$tMB_pair) + 1, label.y = max(data$tMB_single) - 3) +  # Regression equation
+  labs(
+    title = "TMB pair vs single Correlation Plot",
+    x = "TMB_pair Data",
+    y = "TMB_single Data"
+  ) +
+  theme_minimal()+
+  theme(
+    plot.title = element_text(hjust = 0.5)  # Center the title
+  )
+
+# Display the plot
+print(plot)
+
+
+```
+

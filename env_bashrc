@@ -1,0 +1,8 @@
+# Get the aliases and functions
+if [ -f ~/.bashrc ]; then
+	. ~/.bashrc
+fi
+
+# User specific environment and startup programs
+
+PATH=$PATH:$HOME/.local/bin:$HOME/bin:/mnt/binf/rui/bin:/mnt/binf/rui/bin/software/bin:/mnt/binf/rui/bin/jars/VarDict-1.8.3/bin:/mnt/binf/rui/bin/sratoolkit.3.1.1-centos_linux64/bin

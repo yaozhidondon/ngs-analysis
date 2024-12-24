@@ -1,0 +1,119 @@
+---
+title: "ppv vs sensitivity"
+author: "yc"
+date: "2024-12-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+# File paths for the uploaded files
+file1 <- "~/Desktop/TMB-01-rerun.final.tsv"
+file2 <- "~/Desktop/TMB-02-rerun.final.tsv"
+file3 <- "~/Desktop/TMB-03-rerun.final.tsv"
+file4 <- "~/Desktop/TMB-01-SS.final.tsv"
+file5 <- "~/Desktop/TMB-02-SS.final.tsv"
+file6 <- "~/Desktop/TMB-03-SS.final.tsv"
+
+# Read the TSV files into data frames
+df1 <- read.table(file1, sep = "\t", header = TRUE)
+df2 <- read.table(file2, sep = "\t", header = TRUE)
+df3 <- read.table(file3, sep = "\t", header = TRUE)
+df4 <- read.table(file4, sep = "\t", header = TRUE)
+df5 <- read.table(file5, sep = "\t", header = TRUE)
+df6 <- read.table(file6, sep = "\t", header = TRUE)
+
+# Combine the data frames into a single data frame
+known_res <- rbind(df1, df2, df3)
+new_res <- rbind(df4, df5, df6)
+
+# Save the combined data frame as a CSV file
+write.csv(known_res, "known_res_combined.csv", row.names = FALSE)
+write.csv(new_res, "new_res_combined.csv", row.names = FALSE)
+# Print a preview of the combined data frame
+print(head(known_res))
+print(head(new_res))
+
+# Select the desired columns
+columns_to_keep <- c("id", "Gene", "AAChange", "AF", "Hotspot")
+known_res_subset <- known_res[, columns_to_keep]
+new_res_subset <- new_res[, columns_to_keep]
+
+
+# Combine the Gene and AAChange columns with "_"
+known_res_subset$Gene_AAChange <- paste(known_res_subset$Gene, known_res_subset$AAChange, sep = "_")
+new_res_subset$Gene_AAChange <- paste(new_res_subset$Gene, new_res_subset$AAChange, sep = "_")
+
+# Drop the original Gene and AAChange columns
+known_res_subset <- known_res_subset[, !(names(known_res_subset) %in% c("Gene", "AAChange"))]
+new_res_subset <- new_res_subset[, !(names(new_res_subset) %in% c("Gene", "AAChange"))]
+
+# Save the updated data frame to a CSV file
+write.csv(known_res_subset, "known_res_with_combined_column.csv", row.names = FALSE)
+write.csv(new_res_subset, "new_res_with_combined_column.csv", row.names = FALSE)
+
+# Print a preview of the updated data frame
+print(head(known_res_subset))
+print(head(new_res_subset))
+
+filtered_data <- subset(known_res_subset, Hotspot %in% c("NHS", "HS2"))
+new_filtered_data <- subset(new_res_subset, Hotspot %in% c("NHS", "HS2"))
+
+# Split the data into two groups: NHS and HS
+nhs_known_res <- subset(filtered_data, Hotspot == "NHS")
+hs_known_res <- subset(filtered_data, Hotspot == "HS2")
+nhs_new_res <- subset(new_filtered_data, Hotspot == "NHS")
+hs_new_res <- subset(new_filtered_data, Hotspot == "HS2")
+
+nhs_known_res_id_gene_aachange <- nhs_known_res[, c("id", "Gene_AAChange")]
+hs_known_res_res_id_gene_aachange <- hs_known_res[, c("id", "Gene_AAChange")]
+nhs_new_res_res_id_gene_aachange <- nhs_new_res[, c("id", "Gene_AAChange")]
+hs_new_res_id_gene_aachange <- hs_new_res[, c("id", "Gene_AAChange")]
+
+write.csv(nhs_known_res_id_gene_aachange, "nhs_known_res_id_gene_aachange.csv", row.names = FALSE)
+write.csv(nhs_new_res_res_id_gene_aachange, "nhs_new_res_res_id_gene_aachange.csv", row.names = FALSE)
+write.csv(hs_known_res_res_id_gene_aachange, "hs_known_res_id_gene_aachange.csv", row.names = FALSE)
+write.csv(hs_new_res_id_gene_aachange, "hs_new_res_res_id_gene_aachange.csv", row.names = FALSE)
+
+# Load the data
+nhs_known <- read.csv("nhs_known_res_id_gene_aachange.csv")  # Replace with actual file path
+nhs_new <- read.csv("nhs_new_res_res_id_gene_aachange.csv")  # Replace with actual file path
+hs_known <- read.csv("hs_known_res_id_gene_aachange.csv")  # Replace with actual file path
+hs_new <- read.csv("hs_new_res_res_id_gene_aachange.csv")  # Replace with actual file path
+
+# Check if Gene_AAChange in NHS_known is present in NHS_new
+nhs_known$is_in_new <- nhs_known$Gene_AAChange %in% nhs_new$Gene_AAChange
+hs_known$is_in_new <- hs_known$Gene_AAChange %in% hs_new$Gene_AAChange
+
+# Calculate TP, FP, FN
+nhsTP <- sum(nhs_known$is_in_new)  # True Positives: Actual values found in predictions
+nhsFP <- sum(!nhs_new$Gene_AAChange %in% nhs_known$Gene_AAChange)  # False Positives: Predicted values not in actuals
+nhsFN <- sum(!nhs_known$is_in_new)  # False Negatives: Actual values not predicted
+hsTP <- sum(hs_known$is_in_new)  # True Positives: Actual values found in predictions
+hsFP <- sum(!hs_new$Gene_AAChange %in% hs_known$Gene_AAChange)  # False Positives: Predicted values not in actuals
+hsFN <- sum(!hs_known$is_in_new)  # False Negatives: Actual values not predicted
+
+# Calculate PPV and Sensitivity
+nhsPPV <- ifelse((nhsTP + nhsFP) > 0, nhsTP / (nhsTP + nhsFP), 0)
+nhsSensitivity <- ifelse((nhsTP + nhsFN) > 0, nhsTP / (nhsTP + nhsFN), 0)
+hsPPV <- ifelse((hsTP + hsFP) > 0, hsTP / (hsTP + hsFP), 0)
+hsSensitivity <- ifelse((hsTP + hsFN) > 0, hsTP / (hsTP + hsFN), 0)
+
+# Print the results
+cat("not hotspot Positive Predictive Value (PPV):", nhsPPV, "\n")
+cat("not hotspot Sensitivity:", nhsSensitivity, "\n")
+cat("hotspot Positive Predictive Value (PPV):", hsPPV, "\n")
+cat("hotspot Sensitivity:", hsSensitivity, "\n")
+
+
+
+```
